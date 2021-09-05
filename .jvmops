@@ -1,4 +1,4 @@
--Xss4M 
+-Xss64M 
 -Xms1G 
 -Xmx6G 
 -XX:MaxMetaspaceSize=6G
@@ -8,4 +8,3 @@
 -XX:+TieredCompilation
 -XX:+CMSClassUnloadingEnabled 
 -XX:+UseParallelGC
-

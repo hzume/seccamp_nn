@@ -7,14 +7,17 @@ resolvers ++= Seq(
 
 lazy val root = (project in file("."))
   .settings(
-    organization := "FreeChips",
-    name := "chisel-project",
-    version := "0.0.1",
-    scalaVersion := "2.12.10",
+    name := "seccamp-nn",
+    version := "0.1",
+    scalaVersion := "2.12.8",
     maxErrors := 3,
     libraryDependencies ++= Seq(
-      "edu.berkeley.cs" %% "chisel3"         % "3.2-SNAPSHOT",
-      "edu.berkeley.cs" %% "chisel-testers2" % "0.1-SNAPSHOT"
+      "org.scalatest" %% "scalatest" % "3.2.2",
+      "edu.berkeley.cs" %% "chisel3"         % "3.0.+",
+      "edu.berkeley.cs" %% "chisel-iotesters" % "1.1.+",
+      "io.circe" %% "circe-core" % "0.7.0",
+      "io.circe" %% "circe-parser" % "0.7.0",
+      "io.circe" %% "circe-generic" % "0.7.0",
     )
   )
 
@@ -23,7 +26,8 @@ scalacOptions --= Seq(
   "-Xfatal-warnings"
 )
 scalacOptions ++= Seq(
-  "-Xsource:2.11"
+  "-Xsource:2.11",
+  "-language:reflectiveCalls",
 )
 
 addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full)
