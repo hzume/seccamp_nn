@@ -12,7 +12,7 @@ class RomData(val id: Int, val fc1: Seq[Int], val fc2: Seq[Int], val fc3: Seq[In
                 val bn2_weight: Seq[Int], val bn2_bias: Seq[Int], val bn2_mean: Seq[Int], val bn2_norm: Seq[Int],
                 val bn3_weight: Seq[Int], val bn3_bias: Seq[Int], val bn3_mean: Seq[Int], val bn3_norm: Seq[Int])
 
-class TopMLP(val in_w:Int, val input:Seq[Int], val fc1: Seq[Int], val fc2: Seq[Int], val fc3: Seq[Int],
+class TopMLP(val in_w:Int, val out_w:Int , val input:Seq[Int], val fc1: Seq[Int], val fc2: Seq[Int], val fc3: Seq[Int],
              val bn1_weight: Seq[Int], val bn1_bias: Seq[Int], val bn1_mean: Seq[Int], val bn1_norm: Seq[Int],
              val bn2_weight: Seq[Int], val bn2_bias: Seq[Int], val bn2_mean: Seq[Int], val bn2_norm: Seq[Int],
              val bn3_weight: Seq[Int], val bn3_bias: Seq[Int], val bn3_mean: Seq[Int], val bn3_norm: Seq[Int]) extends Module{
@@ -22,7 +22,7 @@ class TopMLP(val in_w:Int, val input:Seq[Int], val fc1: Seq[Int], val fc2: Seq[I
 
     val in = VecInit(input map(x => x.S(in_w.W)))
     val mlp = Module(new MLP(
-            fc1, fc2, fc3, 
+            in_w, out_w, fc1, fc2, fc3, 
             bn1_weight, bn1_bias, bn1_mean, bn1_norm, 
             bn2_weight, bn2_bias, bn2_mean, bn2_norm, 
             bn3_weight, bn3_bias, bn3_mean, bn3_norm

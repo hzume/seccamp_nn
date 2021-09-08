@@ -78,9 +78,9 @@ class MLP(val in_w:Int, val out_w:Int, val fc1_d: Seq[Int], val fc2_d: Seq[Int],
         val out = Output(Vec(10, SInt(out_w.W)))
     })
 
-    val fc1 = Module(new Linear(784, 16, fc1_d, in_w, 10))
-    val bn1 = Module(new ShifBatchNorm(16, bn1_weight, bn1_bias, bn1_mean, bn1_norm, 10))
-    val bi1 = Module(new Binarize(16, 10))
+    val fc1 = Module(new Linear(784, 16, fc1_d, in_w, 11))
+    val bn1 = Module(new ShifBatchNorm(16, bn1_weight, bn1_bias, bn1_mean, bn1_norm, 11))
+    val bi1 = Module(new Binarize(16, 11))
     
     val fc2 = Module(new Linear(16, 16, fc2_d, 2, out_w))
     val bn2 = Module(new ShifBatchNorm(16, bn2_weight, bn2_bias, bn2_mean, bn2_norm, out_w))
