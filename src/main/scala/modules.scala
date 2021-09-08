@@ -1,13 +1,13 @@
 import chisel3._
 import externalroms._
 
-class Linear(val in_units:Int, val out_units:Int, val param:Seq[Int]) extends Module {
+class Linear(val in_units:Int, val out_units:Int, val param:Seq[Int], val in_w:Int, val out_w:Int) extends Module {
     val io = IO(new Bundle{
-        val in = Input(Vec(in_units, SInt(16.W)))
-        val out = Output(Vec(out_units, SInt(16.W)))
+        val in = Input(Vec(in_units, SInt(in_w.W)))
+        val out = Output(Vec(out_units, SInt(out_w.W)))
     })
 
-    val buffer = Wire(Vec(out_units, Vec(in_units, SInt(16.W))))
+    val buffer = Wire(Vec(out_units, Vec(in_units, SInt(out_w.W))))
 
     for (i <- 0 until out_units) {
         for (j <- 0 until in_units) {
@@ -32,17 +32,17 @@ class Linear(val in_units:Int, val out_units:Int, val param:Seq[Int]) extends Mo
     }
 }
 
-class ShifBatchNorm(val num_units:Int, val weight:Seq[Int], val bias:Seq[Int], val mean:Seq[Int], val norm:Seq[Int]) extends Module {
+class ShifBatchNorm(val num_units:Int, val weight:Seq[Int], val bias:Seq[Int], val mean:Seq[Int], val norm:Seq[Int], val bit_w:Int) extends Module {
     val io = IO(new Bundle {
-        val in = Input(Vec(num_units, SInt(16.W)))
-        val out = Output(Vec(num_units, SInt(16.W)))
+        val in = Input(Vec(num_units, SInt(bit_w.W)))
+        val out = Output(Vec(num_units, SInt(bit_w.W)))
     })
 
-    val c_x = Wire(Vec(num_units, SInt(16.W)))
-    val x_hat = Wire(Vec(num_units, SInt(16.W)))
-    val normed_x_hat = Wire(Vec(num_units, SInt(16.W)))
+    val c_x = Wire(Vec(num_units, SInt(bit_w.W)))
+    val x_hat = Wire(Vec(num_units, SInt(bit_w.W)))
+    val normed_x_hat = Wire(Vec(num_units, SInt(bit_w.W)))
     for (i <- 0 until num_units) {
-        c_x(i) := io.in(i) - mean(i).S(16.W)
+        c_x(i) := io.in(i) - mean(i).S(bit_w.W)
         if (norm(i) >= 0) {
             x_hat(i) := c_x(i) << norm(i).U(4.W)    
         }
@@ -50,13 +50,13 @@ class ShifBatchNorm(val num_units:Int, val weight:Seq[Int], val bias:Seq[Int], v
             x_hat(i) := c_x(i) << (-norm(i)).U(4.W)
         }
         normed_x_hat(i) := x_hat(i) << weight(i).U(4.W)
-        io.out(i) := normed_x_hat(i) + bias(i).S(16.W) 
+        io.out(i) := normed_x_hat(i) + bias(i).S(bit_w.W) 
     }
 }
 
-class Binarize(val num_units:Int) extends Module {
+class Binarize(val num_units:Int, val in_w:Int) extends Module {
     val io = IO(new Bundle {
-        val in = Input(Vec(num_units, SInt(16.W)))
+        val in = Input(Vec(num_units, SInt(in_w.W)))
         val out = Output(Vec(num_units, SInt(2.W)))
     })
 
@@ -69,25 +69,25 @@ class Binarize(val num_units:Int) extends Module {
     }
 }
 
-class MLP(val fc1_d: Seq[Int], val fc2_d: Seq[Int], val fc3_d: Seq[Int],
+class MLP(val in_w:Int, val out_w:Int, val fc1_d: Seq[Int], val fc2_d: Seq[Int], val fc3_d: Seq[Int],
             val bn1_weight: Seq[Int], val bn1_bias: Seq[Int], val bn1_mean: Seq[Int], val bn1_norm: Seq[Int],
             val bn2_weight: Seq[Int], val bn2_bias: Seq[Int], val bn2_mean: Seq[Int], val bn2_norm: Seq[Int],
             val bn3_weight: Seq[Int], val bn3_bias: Seq[Int], val bn3_mean: Seq[Int], val bn3_norm: Seq[Int]) extends Module {
     val io = IO(new Bundle{
-        val in = Input(Vec(784, SInt(16.W)))
-        val out = Output(Vec(10, SInt(16.W)))
+        val in = Input(Vec(784, SInt(in_w.W)))
+        val out = Output(Vec(10, SInt(out_w.W)))
     })
 
-    val fc1 = Module(new Linear(784, 16, fc1_d))
-    val bn1 = Module(new ShifBatchNorm(16, bn1_weight, bn1_bias, bn1_mean, bn1_norm))
-    val bi1 = Module(new Binarize(16))
+    val fc1 = Module(new Linear(784, 16, fc1_d, in_w, 10))
+    val bn1 = Module(new ShifBatchNorm(16, bn1_weight, bn1_bias, bn1_mean, bn1_norm, 10))
+    val bi1 = Module(new Binarize(16, 10))
     
-    val fc2 = Module(new Linear(16, 16, fc2_d))
-    val bn2 = Module(new ShifBatchNorm(16, bn2_weight, bn2_bias, bn2_mean, bn2_norm))
-    val bi2 = Module(new Binarize(16))
+    val fc2 = Module(new Linear(16, 16, fc2_d, 2, out_w))
+    val bn2 = Module(new ShifBatchNorm(16, bn2_weight, bn2_bias, bn2_mean, bn2_norm, out_w))
+    val bi2 = Module(new Binarize(16, out_w))
     
-    val fc3 = Module(new Linear(16, 10, fc3_d))
-    val bn3 = Module(new ShifBatchNorm(10, bn3_weight, bn3_bias, bn3_mean, bn3_norm))
+    val fc3 = Module(new Linear(16, 10, fc3_d, 2, out_w))
+    val bn3 = Module(new ShifBatchNorm(10, bn3_weight, bn3_bias, bn3_mean, bn3_norm, out_w))
 
     fc1.io.in := io.in
     bn1.io.in := fc1.io.out

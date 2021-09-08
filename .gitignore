@@ -5,3 +5,4 @@ target
 project/target
 project/project
 project/.bloop
+tests/
