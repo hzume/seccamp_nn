@@ -9,6 +9,7 @@ class RomData(val id: Int, val fc1: Seq[Int], val fc2: Seq[Int], val fc3: Seq[In
                 val bn3_weight: Seq[Int], val bn3_bias: Seq[Int], val bn3_mean: Seq[Int], val bn3_norm: Seq[Int])
 
 object Main extends App{
+    /*
     val romDir = new File("src/test/data")
     romDir.listFiles().filter(f => f.getName().contains("params_4.json")).foreach { f => 
         val json = Source.fromFile(f.getAbsolutePath()).mkString
@@ -22,5 +23,6 @@ object Main extends App{
             romData.bn2_weight, romData.bn2_bias, romData.bn2_mean, romData.bn2_norm,
             romData.bn3_weight, romData.bn3_bias, romData.bn3_mean, romData.bn3_norm))
     }
-    chisel3.Driver.execute(args, () => new Ex)
+    */
+    chisel3.Driver.execute(args, () => new ReadRom(8, 9, 10))
 }

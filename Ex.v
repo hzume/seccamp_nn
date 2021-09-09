@@ -1581,7 +1581,8 @@ module Ex( // @[:@3.2]
   output [3:0] io_out_780, // @[:@6.4]
   output [3:0] io_out_781, // @[:@6.4]
   output [3:0] io_out_782, // @[:@6.4]
-  output [3:0] io_out_783 // @[:@6.4]
+  output [3:0] io_out_783, // @[:@6.4]
+  output       io_addr // @[:@6.4]
 );
   assign io_out_0 = io_in_0;
   assign io_out_1 = io_in_1;
@@ -2367,4 +2368,5 @@ module Ex( // @[:@3.2]
   assign io_out_781 = io_in_781;
   assign io_out_782 = io_in_782;
   assign io_out_783 = io_in_783;
+  assign io_addr = 1'h0;
 endmodule

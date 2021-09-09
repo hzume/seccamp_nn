@@ -25,21 +25,20 @@ def input_rom():
 
 def ex():
     d = {}
-    d["file"] = [{"type": "iyokanl1-json", "path": "Ex_converted.json", "name": "EX"}]
-    d["builtin"] = [{"type": "rom", "name": "input_rom", "in_addr_width": 1, "out_rdata_width": 4}]
+    d["file"] = [{"type": "iyokanl1-json", "path": "ReadRom_converted.json", "name": "readrom"}]
+    d["builtin"] = [{"type": "rom", "name": "input_rom", "in_addr_width": 10, "out_rdata_width": 4}]
     connect_d = {}
-    for i in range(784):
-        connect_d[f"Ex/io_in_{i}[0:3]"] = f"input_rom/rdata[{i*4}:{(i+1)*4-1}]"
-    for i in range(784):
-        connect_d[f"@out_{i}[0:3]"] = f"Ex/io_out_{i}[0:3]"
+    connect_d["input_rom/addr[0:9]"] = "readrom/io_addr[0:9]"
+    connect_d["readrom/io_data[0:3]"] = "input_rom/rdata[0:3]"
+    connect_d["readrom/reset"] = "@reset"
+    connect_d["@out[0:3]"] = "readrom/io_out[0:3]"
     
     d["connect"] = connect_d
 
-    with open("tests/ex.toml", mode="w") as f:
+    with open("tests/readrom.toml", mode="w") as f:
         f.write(toml.dumps(d))
     
 if __name__=="__main__":
     #test_mlp()
     #input_rom()
-    #ex()
-    print([7]*784)
+    ex()
