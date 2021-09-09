@@ -22,4 +22,5 @@ object Main extends App{
             romData.bn2_weight, romData.bn2_bias, romData.bn2_mean, romData.bn2_norm,
             romData.bn3_weight, romData.bn3_bias, romData.bn3_mean, romData.bn3_norm))
     }
+    chisel3.Driver.execute(args, () => new Ex)
 }

@@ -1,5 +1,4 @@
 import chisel3._
-import externalroms._
 
 class Linear(val in_units:Int, val out_units:Int, val param:Seq[Int], val in_w:Int, val out_w:Int) extends Module {
     val io = IO(new Bundle{
