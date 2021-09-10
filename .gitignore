@@ -9,4 +9,4 @@ tests/*
 tests/project
 !tests/*.toml
 !tests/*.in
-test_run_dir/
+test_run_dir
