@@ -1,0 +1,25 @@
+[[file]]
+type = "iyokanl1-json"
+path = "ReadRom_converted.json"
+name = "readrom"
+
+[[builtin]]
+type = "rom"
+name = "rom"
+in_addr_width = 9
+out_rdata_width = 8
+
+[connect]
+"rom/addr[0:8]" = "readrom/io_addr[0:8]"
+"readrom/io_data[0:7]" = "rom/rdata[0:7]"
+"readrom/reset" = "@reset"
+"@out_0[0:7]" = "readrom/io_out_0[0:7]"
+"@out_1[0:7]" = "readrom/io_out_1[0:7]"
+"@out_2[0:7]" = "readrom/io_out_2[0:7]"
+"@out_3[0:7]" = "readrom/io_out_3[0:7]"
+"@out_4[0:7]" = "readrom/io_out_4[0:7]"
+"@out_5[0:7]" = "readrom/io_out_5[0:7]"
+"@out_6[0:7]" = "readrom/io_out_6[0:7]"
+"@out_7[0:7]" = "readrom/io_out_7[0:7]"
+"@out_8[0:7]" = "readrom/io_out_8[0:7]"
+"@out_9[0:7]" = "readrom/io_out_9[0:7]"

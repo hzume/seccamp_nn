@@ -1,0 +1,12 @@
+.bloop
+.metals
+.idea
+target
+project/target
+project/project
+project/.bloop
+tests/*
+tests/project
+!tests/*.toml
+!tests/*.in
+test_run_dir/
