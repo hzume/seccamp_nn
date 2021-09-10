@@ -1,5 +1,28 @@
 import chisel3._
 
+class RomReader(val in_w:Int, val addr_w:Int, val num:Int) extends Module {
+    val io = IO(new Bundle {
+        val data = Input(SInt(in_w.W))
+        val addr = Output(UInt(addr_w.W))
+        val out = Output(Vec(num, SInt(in_w.W)))
+        val flag = Output(Bool())
+    })
+
+    val cnt = RegInit(0.U(addr_w.W))
+    val res = RegInit(VecInit(Seq.fill(num)(0.S(in_w.W))))
+
+    io.out := res
+    io.addr := cnt
+    io.flag := false.B
+
+    when(cnt =/= num.U) {
+        res(cnt) := io.data
+        cnt := cnt + 1.U
+    }.otherwise {
+        io.flag := true.B
+    }
+}
+
 class Linear(val in_units:Int, val out_units:Int, val param:Seq[Int], val in_w:Int, val out_w:Int) extends Module {
     val io = IO(new Bundle{
         val in = Input(Vec(in_units, SInt(in_w.W)))
@@ -97,4 +120,27 @@ class MLP(val in_w:Int, val out_w:Int, val fc1_d: Seq[Int], val fc2_d: Seq[Int],
     fc3.io.in := bi2.io.out
     bn3.io.in := fc3.io.out
     io.out := bn3.io.out
+}
+
+class TopMLP(val in_w:Int, val out_w:Int, val fc1_d: Seq[Int], val fc2_d: Seq[Int], val fc3_d: Seq[Int],
+            val bn1_weight: Seq[Int], val bn1_bias: Seq[Int], val bn1_mean: Seq[Int], val bn1_norm: Seq[Int],
+            val bn2_weight: Seq[Int], val bn2_bias: Seq[Int], val bn2_mean: Seq[Int], val bn2_norm: Seq[Int],
+            val bn3_weight: Seq[Int], val bn3_bias: Seq[Int], val bn3_mean: Seq[Int], val bn3_norm: Seq[Int]) extends Module {
+    val io = IO(new Bundle {
+        val data = Input(SInt(in_w.W))
+        val addr = Output(UInt(9.W))
+        val out = Output(Vec(10, SInt(out_w.W)))
+    })
+
+    val mlp = Module(new MLP(in_w, out_w, fc1_d, fc2_d, fc3_d,
+                             bn1_weight, bn1_bias, bn1_mean, bn1_norm,
+                             bn2_weight, bn2_bias, bn2_mean, bn2_norm,
+                             bn3_weight, bn3_bias, bn3_mean, bn3_norm))
+    val romreader = Module(new RomReader(in_w, 9, 784))
+
+    io.addr := romreader.io.addr
+    romreader.io.data := io.data
+
+    mlp.io.in := romreader.io.out
+    io.out := mlp.io.out
 }

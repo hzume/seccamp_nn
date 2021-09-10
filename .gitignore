@@ -5,4 +5,8 @@ target
 project/target
 project/project
 project/.bloop
-tests/
+tests/*
+tests/project
+!tests/*.toml
+!tests/*.in
+test_run_dir/

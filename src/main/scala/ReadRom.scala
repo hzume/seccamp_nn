@@ -8,13 +8,13 @@ class ReadRom(val in_w:Int, val addr_w:Int, val num:Int) extends Module {
     })
 
     val cnt = RegInit(0.U(addr_w.W))
-    val res = RegInit(VecInit(Seq.fill(num)(0.S)))
+    val res = RegInit(VecInit(Seq.fill(num)(0.S(in_w.W))))
 
     io.out := res
     io.addr := cnt
-    res(cnt) := io.data
 
     when(cnt =/= num.U) {
+        res(cnt) := io.data
         cnt := cnt + 1.U
     }
 }
