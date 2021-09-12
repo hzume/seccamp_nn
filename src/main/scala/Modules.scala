@@ -23,6 +23,50 @@ class RomReader(val in_w:Int, val addr_w:Int, val num:Int) extends Module {
     }
 }
 
+class Linear_p(val in_units:Int, val out_units:Int, val param:Seq[Int], val in_w:Int, val out_w:Int) extends Module {
+    val io = IO(new Bundle{
+        val in = Input(Vec(in_units, SInt(in_w.W)))
+        val out = Output(Vec(out_units, SInt(out_w.W)))
+    })
+
+    val buffer = Wire(Vec(out_units, Vec(in_units, SInt(out_w.W))))
+
+    for (i <- 0 until out_units) {
+        for (j <- 0 until in_units if j % 2 == 0) {
+            if (param(i * in_units + j) == 1 && param(i * in_units + j + 1) == 1) {
+                buffer(i)(j / 2) := io.in(j) + io.in(j + 1)
+            }
+            else if ((param(i * in_units + j) == 1) && (param(i * in_units + j + 1) == 0)) {
+                buffer(i)(j / 2) := io.in(j) - io.in(j + 1)
+            }
+            else if ((param(i * in_units + j) == 0) && (param(i * in_units + j + 1) == 1)) {
+                buffer(i)(j / 2) := -io.in(j) + io.in(j + 1)
+            }
+            else if ((param(i * in_units + j) == 0) && (param(i * in_units + j + 1) == 0)) {
+                buffer(i)(j / 2) := -io.in(j) - io.in(j + 1)
+            }
+        }
+        for (j <- 0 until (in_units/2) if j % 2 == 0) {
+            buffer(i)(in_units/2 + j/2) := buffer(i)(j) + buffer(i)(j + 1)
+        }
+        for (j <- 0 until (in_units/4) if j % 2 == 0) {
+            buffer(i)(in_units/4 + in_units/2 + j/2) := buffer(i)(in_units/2 + j) + buffer(i)(in_units/2 + j + 1)
+        }
+        for (j <- 0 until (in_units/8) if j % 2 == 0) {
+            buffer(i)(in_units/8 + in_units/4 + in_units/2 + j/2) := buffer(i)(in_units/4 + in_units/2 + j) + buffer(i)(in_units/4 + in_units/2 + j + 1)
+        }
+        for (j <- 0 until (in_units/16)) {
+            if (j == 0) {
+                buffer(i)(in_units/16 + in_units/8 + in_units/4 + in_units/2 + j) := buffer(i)(in_units/8 + in_units/4 + in_units/2 + j)
+            }
+            else {
+                buffer(i)(in_units/16 + in_units/8 + in_units/4 + in_units/2 + j) := buffer(i)(in_units/16 + in_units/8 + in_units/4 + in_units/2 + j - 1) + buffer(i)(in_units/8 + in_units/4 + in_units/2 + j)
+            }
+        }
+        io.out(i) := buffer(i)(in_units-1)
+    }
+}
+
 class Linear(val in_units:Int, val out_units:Int, val param:Seq[Int], val in_w:Int, val out_w:Int) extends Module {
     val io = IO(new Bundle{
         val in = Input(Vec(in_units, SInt(in_w.W)))
@@ -100,6 +144,8 @@ class MLP(val in_w:Int, val out_w:Int, val fc1_d: Seq[Int], val fc2_d: Seq[Int],
         val out = Output(Vec(10, SInt(out_w.W)))
     })
 
+    val buffer = RegInit(VecInit(Seq.fill(10)(0.S(out_w.W))))
+
     val fc1 = Module(new Linear(784, 16, fc1_d, in_w, 11))
     val bn1 = Module(new ShifBatchNorm(16, bn1_weight, bn1_bias, bn1_mean, bn1_norm, 11))
     val bi1 = Module(new Binarize(16, 11))
@@ -119,7 +165,8 @@ class MLP(val in_w:Int, val out_w:Int, val fc1_d: Seq[Int], val fc2_d: Seq[Int],
     bi2.io.in := bn2.io.out
     fc3.io.in := bi2.io.out
     bn3.io.in := fc3.io.out
-    io.out := bn3.io.out
+    buffer := bn3.io.out
+    io.out := buffer
 }
 
 class TopMLP(val in_w:Int, val out_w:Int, val fc1_d: Seq[Int], val fc2_d: Seq[Int], val fc3_d: Seq[Int],

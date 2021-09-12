@@ -17,7 +17,7 @@ class TopMLP(val in_w:Int, val out_w:Int , val input:Seq[Int], val fc1: Seq[Int]
              val bn2_weight: Seq[Int], val bn2_bias: Seq[Int], val bn2_mean: Seq[Int], val bn2_norm: Seq[Int],
              val bn3_weight: Seq[Int], val bn3_bias: Seq[Int], val bn3_mean: Seq[Int], val bn3_norm: Seq[Int]) extends Module{
     val io = IO(new Bundle{
-        val out = Output(Vec(10, SInt(16.W)))
+        val out = Output(Vec(10, SInt(out_w.W)))
     })
 
     val in = VecInit(input map(x => x.S(in_w.W)))
@@ -56,35 +56,36 @@ class MLPSpec extends AnyFreeSpec with Matchers{
     }
 }
 
+
 /*
-class TopLinear(val param: Seq[Int], val input: Seq[Int]) extends Module{
+class TopLinear_p(val param: Seq[Int], val input: Seq[Int]) extends Module{
     val io = IO(new Bundle{
-        val out = Output(Vec(16, SInt(16.W)))
+        val out = Output(Vec(16, SInt(12.W)))
     })
 
-    val in = VecInit(input map(x => x.S(16.W)))
-    val linear = Module(new Linear(784, 16, param))
+    val in = VecInit(input map(x => x.S(4.W)))
+    val linear = Module(new Linear_p(784, 16, param, 5, 12))
     linear.io.in := in
     io.out := linear.io.out
 }
 
-class LinearTester(c: TopLinear) extends PeekPokeTester(c){
+class Linear_pTester(c: TopLinear_p) extends PeekPokeTester(c){
     step(1)
     for (i <- 0 until 16) {
         println(s"out[$i] = ${peek(c.io.out(i))}")
     }
 }
 
-class LinearSpec extends AnyFreeSpec with Matchers{
+class Linear_pSpec extends AnyFreeSpec with Matchers{
     val romDir = new File("src/test/data")
-    romDir.listFiles().filter(f => f.getName().contains("params.json")).foreach { f => 
+    romDir.listFiles().filter(f => f.getName().contains("params_4.json")).foreach { f => 
         val json = Source.fromFile(f.getAbsolutePath()).mkString
         val romData = decode[RomData](json) match {
             case Right(data) => data
             case Left(error) => throw new Exception(error)
         }
-        Driver.execute(Array("--backend-name", "firrtl"), () => new TopLinear(romData.fc1, romData.input)) {
-            c => new LinearTester(c)
+        Driver.execute(Array("--backend-name", "firrtl"), () => new TopLinear_p(romData.fc1, romData.input)) {
+            c => new Linear_pTester(c)
         }
     }
 }
