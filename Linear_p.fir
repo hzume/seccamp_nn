@@ -3,9 +3,9 @@ circuit Linear_p :
   module Linear_p : 
     input clock : Clock
     input reset : UInt<1>
-    output io : {flip in : SInt<4>[784], out : SInt<12>[16]}
+    output io : {flip in : SInt<5>[784], out : SInt<11>[16]}
     
-    wire buffer : SInt<12>[784][16] @[Modules.scala 32:22]
+    wire buffer : SInt<11>[784][16] @[Modules.scala 32:22]
     node _T_54267 = sub(asSInt(UInt<1>("h00")), io.in[0]) @[Modules.scala 43:37]
     node _T_54268 = tail(_T_54267, 1) @[Modules.scala 43:37]
     node _T_54269 = asSInt(_T_54268) @[Modules.scala 43:37]

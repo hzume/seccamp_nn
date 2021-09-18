@@ -16,13 +16,10 @@ object Main extends App{
             case Right(data) => data
             case Left(error) => throw new Exception(error)
         }
-        chisel3.Driver.execute(args, () => new MLP(
-            4, 8, romData.fc1, romData.fc2, romData.fc3, 
+        chisel3.Driver.execute(args, () => new MLP_p(
+            5, 8, romData.fc1, romData.fc2, romData.fc3, 
             romData.bn1_weight, romData.bn1_bias, romData.bn1_mean, romData.bn1_norm,
             romData.bn2_weight, romData.bn2_bias, romData.bn2_mean, romData.bn2_norm,
             romData.bn3_weight, romData.bn3_bias, romData.bn3_mean, romData.bn3_norm))
-        //chisel3.Driver.execute(args, () => new Linear_p(784, 16, romData.fc1, 4, 12))
     }
-    
-    
 }

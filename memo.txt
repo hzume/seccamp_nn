@@ -1,0 +1,41 @@
+# of gates
+Linear_p(in=784, out=16, in_w=5, out_w=11): 
+   Number of cells:             154020
+     $_ANDNOT_                    3278
+     $_AND_                      11722
+     $_MUX_                        806
+     $_NAND_                     66172
+     $_NOR_                       1235
+     $_NOT_                        437
+     $_ORNOT_                     7090
+     $_OR_                        5631
+     $_XNOR_                     21261
+     $_XOR_                      36388
+    
+Linear(in=784, out=16, in_w=4, out_w=11):
+   Number of cells:             614148
+     $_ANDNOT_                   14976
+     $_AND_                      51691
+     $_MUX_                         55
+     $_NAND_                    231314
+     $_NOR_                        853
+     $_NOT_                        910
+     $_ORNOT_                    13013
+     $_OR_                       57464
+     $_XNOR_                    162371
+     $_XOR_                      81501
+    
+Linear(in=16, out=16, in_w=2, out_w=8):
+   Number of cells:               3892
+     $_ANDNOT_                     202
+     $_AND_                        474
+     $_MUX_                         46
+     $_NAND_                       919
+     $_NOR_                         45
+     $_NOT_                         10
+     $_ORNOT_                       82
+     $_OR_                         562
+     $_XNOR_                      1087
+     $_XOR_                        465
+
+Batchnorm: 117

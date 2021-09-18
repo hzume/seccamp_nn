@@ -21,7 +21,7 @@ class TopMLP(val in_w:Int, val out_w:Int , val input:Seq[Int], val fc1: Seq[Int]
     })
 
     val in = VecInit(input map(x => x.S(in_w.W)))
-    val mlp = Module(new MLP(
+    val mlp = Module(new MLP_p(
             in_w, out_w, fc1, fc2, fc3, 
             bn1_weight, bn1_bias, bn1_mean, bn1_norm, 
             bn2_weight, bn2_bias, bn2_mean, bn2_norm, 
@@ -40,14 +40,14 @@ class MLPTester(c: TopMLP) extends PeekPokeTester(c){
 
 class MLPSpec extends AnyFreeSpec with Matchers{
     val romDir = new File("src/test/data")
-    romDir.listFiles().filter(f => f.getName().contains("params_4.json")).foreach { f => 
+    romDir.listFiles().filter(f => f.getName().contains("tnn_param.json")).foreach { f => 
         val json = Source.fromFile(f.getAbsolutePath()).mkString
         val romData = decode[RomData](json) match {
             case Right(data) => data
             case Left(error) => throw new Exception(error)
         }
         Driver.execute(Array("--backend-name", "firrtl"), () => new TopMLP(
-            4, 8, romData.input, romData.fc1, romData.fc2, romData.fc3, 
+            5, 10, romData.input, romData.fc1, romData.fc2, romData.fc3, 
             romData.bn1_weight, romData.bn1_bias, romData.bn1_mean, romData.bn1_norm,
             romData.bn2_weight, romData.bn2_bias, romData.bn2_mean, romData.bn2_norm,
             romData.bn3_weight, romData.bn3_bias, romData.bn3_mean, romData.bn3_norm)) {
