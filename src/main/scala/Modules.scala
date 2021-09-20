@@ -23,6 +23,42 @@ class RomReader(val in_w:Int, val addr_w:Int, val num:Int) extends Module {
     }
 }
 
+class Conv(val in_size:Int, val in_c:Int, val out_c:Int, val kernel_size:Int, val stride:Int, val param:Seq[Seq[Seq[Seq[Int]]]], val in_w:Int, val out_w:Int) extends Module {
+    val out_size = (in_size - kernel_size) / stride + 1 
+    val io = IO(new Bundle{
+        val in = Input(Vec(in_c, Vec(in_size, Vec(in_size, SInt(in_w.W)))))
+        val out = Output(Vec(out_c, Vec(out_size, Vec(out_size, SInt(out_w.W)))))
+    })
+
+    val buffer = Wire(Vec(out_c, Vec(in_c, Vec(out_size, Vec(out_size, Vec(kernel_size, Vec(kernel_size, SInt(out_w.W))))))))
+
+    for (i <- 0 until out_c) {
+        for (h <- 0 until out_size; w <- 0 until out_size) {
+            for (j <- 0 until in_c) {
+                for (k <- 0 until kernel_size; l <- 0 until kernel_size) {
+                    if (l == 0) {
+                        if (k == 0) {
+                            if (j == 0) {
+                                buffer(i)(j)(h)(w)(k)(l) := param(i)(j)(k)(l).S * io.in(j)(h + k)(w + l)
+                            }
+                            else {
+                                buffer(i)(j)(h)(w)(k)(l) := buffer(i)(j - 1)(h)(w)(kernel_size - 1)(kernel_size - 1) + param(i)(j)(k)(l).S * io.in(j)(h + k)(w + l)
+                            }
+                        } 
+                        else {
+                            buffer(i)(j)(h)(w)(k)(l) := buffer(i)(j)(h)(w)(k - 1)(kernel_size - 1) + param(i)(j)(k)(l).S * io.in(j)(h + k)(w + l)
+                        }
+                    }
+                    else {
+                        buffer(i)(j)(h)(w)(k)(l) := buffer(i)(j)(h)(w)(k)(l - 1) + param(i)(j)(k)(l).S * io.in(j)(h + k)(w + l)
+                    }
+                }
+            }
+            io.out(i)(h)(w) := buffer(i)(in_c - 1)(h)(w)(kernel_size - 1)(kernel_size - 1)
+        }
+    }
+}
+
 class Linear_p(val in_units:Int, val out_units:Int, val param:Seq[Int], val in_w:Int, val out_w:Int) extends Module {
     val io = IO(new Bundle{
         val in = Input(Vec(in_units, SInt(in_w.W)))
@@ -33,33 +69,7 @@ class Linear_p(val in_units:Int, val out_units:Int, val param:Seq[Int], val in_w
 
     for (i <- 0 until out_units) {
         for (j <- 0 until in_units if j % 2 == 0) {
-            if ((param(i * in_units + j) == 1) && (param(i * in_units + j + 1) == 1)) {
-                buffer(i)(j / 2) := io.in(j) + io.in(j + 1)
-            }
-            else if ((param(i * in_units + j) == 1) && (param(i * in_units + j + 1) == 0)) {
-                buffer(i)(j / 2) := io.in(j) 
-            }
-            else if ((param(i * in_units + j) == 1) && (param(i * in_units + j + 1) == -1)) {
-                buffer(i)(j / 2) := io.in(j) - io.in(j + 1)
-            }
-            else if ((param(i * in_units + j) == 0) && (param(i * in_units + j + 1) == 1)) {
-                buffer(i)(j / 2) := io.in(j + 1) 
-            }
-            else if ((param(i * in_units + j) == 0) && (param(i * in_units + j + 1) == 0)) {
-                buffer(i)(j / 2) := 0.S
-            }
-            else if ((param(i * in_units + j) == 0) && (param(i * in_units + j + 1) == -1)) {
-                buffer(i)(j / 2) := -io.in(j + 1) 
-            }
-            else if ((param(i * in_units + j) == -1) && (param(i * in_units + j + 1) == 1)) {
-                buffer(i)(j / 2) := -io.in(j) + io.in(j + 1) 
-            }
-            else if ((param(i * in_units + j) == -1) && (param(i * in_units + j + 1) == 0)) {
-                buffer(i)(j / 2) := -io.in(j)
-            }
-            else if ((param(i * in_units + j) == -1) && (param(i * in_units + j + 1) == -1)) {
-                buffer(i)(j / 2) := -io.in(j) - io.in(j + 1) 
-            }
+            buffer(i)(j / 2) := param(i * in_units + j).S * io.in(j) + param(i * in_units + j + 1).S * io.in(j + 1)
         }
         for (j <- 0 until (in_units/2) if j % 2 == 0) {
             buffer(i)(in_units/2 + j/2) := buffer(i)(j) + buffer(i)(j + 1)
@@ -93,26 +103,10 @@ class Linear(val in_units:Int, val out_units:Int, val param:Seq[Int], val in_w:I
     for (i <- 0 until out_units) {
         for (j <- 0 until in_units) {
             if (j == 0) {
-                if (param(i * in_units + j) == 1) {
-                    buffer(i)(j) := io.in(j)
-                }
-                else if (param(i * in_units + j) == -1) {
-                    buffer(i)(j) := -io.in(j)
-                }
-                else if (param(i * in_units + j) == 0) {
-                    buffer(i)(j) := 0.S
-                }
+                buffer(i)(j) := param(i * in_units + j).S * io.in(j)
             }
             else {
-                if (param(i * in_units + j) == 1) {
-                    buffer(i)(j) := buffer(i)(j - 1) + io.in(j)
-                }
-                else if (param(i * in_units + j) == -1) {
-                    buffer(i)(j) := buffer(i)(j - 1) - io.in(j)
-                }
-                else if (param(i * in_units + j) == 0) {
-                    buffer(i)(j) := buffer(i)(j - 1)
-                }
+                buffer(i)(j) := buffer(i)(j - 1) + param(i * in_units + j).S * io.in(j)
             }
         }
         io.out(i) := buffer(i)(in_units - 1)
