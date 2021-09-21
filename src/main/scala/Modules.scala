@@ -113,7 +113,32 @@ class Linear(val in_units:Int, val out_units:Int, val param:Seq[Int], val in_w:I
     }
 }
 
-class ShifBatchNorm(val num_units:Int, val weight:Seq[Int], val bias:Seq[Int], val mean:Seq[Int], val norm:Seq[Int], val bit_w:Int) extends Module {
+class ShiftBatchNorm2d(val in_size:Int, val in_c:Int, val weight:Seq[Int], val bias:Seq[Int], val mean:Seq[Int], val norm:Seq[Int], val bit_w:Int) extends Module {
+    val io = IO(new Bundle {
+        val in = Input(Vec(in_c, Vec(in_size, Vec(in_size, SInt(bit_w.W)))))
+        val out = Output(Vec(in_c, Vec(in_size, Vec(in_size, SInt(bit_w.W))))) 
+    })
+
+    val c_x = Wire(Vec(in_c, Vec(in_size, Vec(in_size, SInt(bit_w.W)))))
+    val x_hat = Wire(Vec(in_c, Vec(in_size, Vec(in_size, SInt(bit_w.W)))))
+    val normed_x_hat = Wire(Vec(in_c, Vec(in_size, Vec(in_size, SInt(bit_w.W)))))
+    for (i <- 0 until in_c) {
+        for (h <- 0 until in_size; w <- 0 until in_size) {
+            c_x(i)(h)(w) := io.in(i)(h)(w) - mean(i).S(bit_w.W)
+        }
+        if (norm(i) >= 0) {
+            x_hat(i)(h)(w) := c_x(i)(h)(w) << norm(i).U(4.W)
+        }
+        else {
+            x_hat(i)(h)(w) := c_x(i)(h)(w) << (-norm(i)).U(4.W)
+        }
+        normed_x_hat(i)(h)(w) := x_hat(i) << weight(i).U(4.W)
+        io.out(i)(h)(w) := normed_x_hat(i)(h)(w) + bias(i).S(bit_w.W)
+    }
+
+}
+
+class ShiftBatchNorm(val num_units:Int, val weight:Seq[Int], val bias:Seq[Int], val mean:Seq[Int], val norm:Seq[Int], val bit_w:Int) extends Module {
     val io = IO(new Bundle {
         val in = Input(Vec(num_units, SInt(bit_w.W)))
         val out = Output(Vec(num_units, SInt(bit_w.W)))
@@ -160,15 +185,15 @@ class MLP(val in_w:Int, val out_w:Int, val fc1_d: Seq[Int], val fc2_d: Seq[Int],
     })
 
     val fc1 = Module(new Linear(784, 16, fc1_d, in_w, 11))
-    val bn1 = Module(new ShifBatchNorm(16, bn1_weight, bn1_bias, bn1_mean, bn1_norm, 11))
+    val bn1 = Module(new ShiftBatchNorm(16, bn1_weight, bn1_bias, bn1_mean, bn1_norm, 11))
     val bi1 = Module(new Binarize(16, 11))
     
     val fc2 = Module(new Linear(16, 16, fc2_d, 2, out_w))
-    val bn2 = Module(new ShifBatchNorm(16, bn2_weight, bn2_bias, bn2_mean, bn2_norm, out_w))
+    val bn2 = Module(new ShiftBatchNorm(16, bn2_weight, bn2_bias, bn2_mean, bn2_norm, out_w))
     val bi2 = Module(new Binarize(16, out_w))
     
     val fc3 = Module(new Linear(16, 10, fc3_d, 2, out_w))
-    val bn3 = Module(new ShifBatchNorm(10, bn3_weight, bn3_bias, bn3_mean, bn3_norm, out_w))
+    val bn3 = Module(new ShiftBatchNorm(10, bn3_weight, bn3_bias, bn3_mean, bn3_norm, out_w))
 
     fc1.io.in := io.in
     bn1.io.in := fc1.io.out
@@ -191,15 +216,15 @@ class MLP_p(val in_w:Int, val out_w:Int, val fc1_d: Seq[Int], val fc2_d: Seq[Int
     })
 
     val fc1 = Module(new Linear_p(784, 16, fc1_d, in_w, 11))
-    val bn1 = Module(new ShifBatchNorm(16, bn1_weight, bn1_bias, bn1_mean, bn1_norm, 11))
+    val bn1 = Module(new ShiftBatchNorm(16, bn1_weight, bn1_bias, bn1_mean, bn1_norm, 11))
     val bi1 = Module(new Binarize(16, 11))
     
     val fc2 = Module(new Linear(16, 16, fc2_d, 2, out_w))
-    val bn2 = Module(new ShifBatchNorm(16, bn2_weight, bn2_bias, bn2_mean, bn2_norm, out_w))
+    val bn2 = Module(new ShiftBatchNorm(16, bn2_weight, bn2_bias, bn2_mean, bn2_norm, out_w))
     val bi2 = Module(new Binarize(16, out_w))
     
     val fc3 = Module(new Linear(16, 10, fc3_d, 2, out_w))
-    val bn3 = Module(new ShifBatchNorm(10, bn3_weight, bn3_bias, bn3_mean, bn3_norm, out_w))
+    val bn3 = Module(new ShiftBatchNorm(10, bn3_weight, bn3_bias, bn3_mean, bn3_norm, out_w))
 
     fc1.io.in := io.in
     bn1.io.in := fc1.io.out
