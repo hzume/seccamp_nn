@@ -10,19 +10,17 @@ class RomData(val id: Int, val fc1: Seq[Int], val fc2: Seq[Int], val fc3: Seq[In
 
 class ConvData(val input: Seq[Int], val param: Seq[Seq[Seq[Seq[Int]]]])
 
+class CnnData(val input: Seq[Seq[Seq[Int]]], val label:Int, val cnn_param:Seq[Seq[Seq[Seq[Seq[Int]]]]], val cnn_bn:Seq[Seq[Seq[Int]]], val fc_param:Seq[Seq[Int]], val fc_bn:Seq[Seq[Seq[Int]]])
+
 object Main extends App{
-    // val romDir = new File("src/test/data")
-    // romDir.listFiles().filter(f => f.getName().contains("params_4.json")).foreach { f => 
-    //     val json = Source.fromFile(f.getAbsolutePath()).mkString
-    //     val romData = decode[RomData](json) match {
-    //         case Right(data) => data
-    //         case Left(error) => throw new Exception(error)
-    //     }
-    //     chisel3.Driver.execute(args, () => new MLP_p(
-    //         5, 8, romData.fc1, romData.fc2, romData.fc3, 
-    //         romData.bn1_weight, romData.bn1_bias, romData.bn1_mean, romData.bn1_norm,
-    //         romData.bn2_weight, romData.bn2_bias, romData.bn2_mean, romData.bn2_norm,
-    //         romData.bn3_weight, romData.bn3_bias, romData.bn3_mean, romData.bn3_norm))
-    // }
+    val romDir = new File("src/test/data")
+    romDir.listFiles().filter(f => f.getName().contains("cnn_data.json")).foreach { f => 
+        val json = Source.fromFile(f.getAbsolutePath()).mkString
+        val romData = decode[CnnData](json) match {
+            case Right(data) => data
+            case Left(error) => throw new Exception(error)
+        }
+        chisel3.Driver.execute(args, () => new CNN(5, 16, romData.cnn_param, romData.cnn_bn, romData.fc_param, romData.fc_bn))
+    }
 
 }

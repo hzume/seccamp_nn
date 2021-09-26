@@ -59,6 +59,43 @@ class Conv(val in_size:Int, val in_c:Int, val out_c:Int, val kernel_size:Int, va
     }
 }
 
+class MaxPool(val in_size:Int, val in_c:Int, val kernel_size:Int, val stride:Int, val in_w:Int) extends Module {
+    val out_size = (in_size - kernel_size) / stride + 1
+    val io = IO(new Bundle{
+        val in = Input(Vec(in_c, Vec(in_size, Vec(in_size, SInt(in_w.W)))))
+        val out = Output(Vec(in_c, Vec(out_size, Vec(out_size, SInt(in_w.W)))))
+    })
+
+    val buffer = Wire(Vec(in_c, Vec(out_size, Vec(out_size, Vec(kernel_size, Vec(kernel_size, SInt(in_w.W)))))))
+
+    for (i <- 0 until in_c) {
+        for (h <- 0 until out_size; w <- 0 until out_size){
+            for (k <- 0 until kernel_size) {
+                for (l <- 0 until kernel_size) {
+                    if ((k == 0) && (l == 0)) {
+                        buffer(i)(h)(w)(k)(l) := io.in(i)(stride * h + k)(stride * w + l)
+                    }
+                    else if (l == 0) {
+                        when(io.in(i)(stride * h + k)(stride * w + l) >= buffer(i)(h)(w)(k - 1)(l)) {
+                            buffer(i)(h)(w)(k)(l) := io.in(i)(stride * h + k)(stride * w + l)
+                        }.otherwise {
+                            buffer(i)(h)(w)(k)(l) := buffer(i)(h)(w)(k - 1)(kernel_size - 1)
+                        }
+                    }
+                    else {
+                        when(io.in(i)(stride * h + k)(stride * w + l) >= buffer(i)(h)(w)(k)(l - 1)) {
+                            buffer(i)(h)(w)(k)(l) := io.in(i)(stride * h + k)(stride * w + l)
+                        }.otherwise {
+                            buffer(i)(h)(w)(k)(l) := buffer(i)(h)(w)(k)(l - 1)
+                        }     
+                    }
+                }
+            }
+            io.out(i)(h)(w) := buffer(i)(h)(w)(kernel_size - 1)(kernel_size - 1)
+        }
+    }
+}
+
 class Linear_p(val in_units:Int, val out_units:Int, val param:Seq[Int], val in_w:Int, val out_w:Int) extends Module {
     val io = IO(new Bundle{
         val in = Input(Vec(in_units, SInt(in_w.W)))
@@ -125,17 +162,16 @@ class ShiftBatchNorm2d(val in_size:Int, val in_c:Int, val weight:Seq[Int], val b
     for (i <- 0 until in_c) {
         for (h <- 0 until in_size; w <- 0 until in_size) {
             c_x(i)(h)(w) := io.in(i)(h)(w) - mean(i).S(bit_w.W)
+            if (norm(i) >= 0) {
+                x_hat(i)(h)(w) := c_x(i)(h)(w) << norm(i).U(4.W)
+            }
+            else {
+                x_hat(i)(h)(w) := c_x(i)(h)(w) << (-norm(i)).U(4.W)
+            }
+            normed_x_hat(i)(h)(w) := x_hat(i)(h)(w) << weight(i).U(4.W)
+            io.out(i)(h)(w) := normed_x_hat(i)(h)(w) + bias(i).S(bit_w.W)
         }
-        if (norm(i) >= 0) {
-            x_hat(i)(h)(w) := c_x(i)(h)(w) << norm(i).U(4.W)
-        }
-        else {
-            x_hat(i)(h)(w) := c_x(i)(h)(w) << (-norm(i)).U(4.W)
-        }
-        normed_x_hat(i)(h)(w) := x_hat(i) << weight(i).U(4.W)
-        io.out(i)(h)(w) := normed_x_hat(i)(h)(w) + bias(i).S(bit_w.W)
     }
-
 }
 
 class ShiftBatchNorm(val num_units:Int, val weight:Seq[Int], val bias:Seq[Int], val mean:Seq[Int], val norm:Seq[Int], val bit_w:Int) extends Module {
@@ -157,6 +193,21 @@ class ShiftBatchNorm(val num_units:Int, val weight:Seq[Int], val bias:Seq[Int], 
         }
         normed_x_hat(i) := x_hat(i) << weight(i).U(4.W)
         io.out(i) := normed_x_hat(i) + bias(i).S(bit_w.W) 
+    }
+}
+
+class Binarize2d(val in_c:Int, val in_size:Int, val in_w:Int) extends Module {
+    val io = IO(new Bundle {
+        val in = Input(Vec(in_c, Vec(in_size, Vec(in_size, SInt(in_w.W)))))
+        val out = Output(Vec(in_c, Vec(in_size, Vec(in_size, SInt(2.W)))))
+    })
+
+    for (i <- 0 until in_c; j <- 0 until in_size; k <- 0 until in_size) {
+        when(io.in(i)(j)(k) >= 0.S) {
+            io.out(i)(j)(k) := 1.S
+        }.otherwise {
+            io.out(i)(j)(k) := -1.S
+        }
     }
 }
 
@@ -237,3 +288,87 @@ class MLP_p(val in_w:Int, val out_w:Int, val fc1_d: Seq[Int], val fc2_d: Seq[Int
     io.out := bn3.io.out
 }
 
+class CNN(val in_w:Int, val out_w:Int, val cnn_param:Seq[Seq[Seq[Seq[Seq[Int]]]]], val cnn_bn:Seq[Seq[Seq[Int]]], val fc_param:Seq[Seq[Int]], val fc_bn:Seq[Seq[Seq[Int]]]) extends Module {
+    val io = IO(new Bundle{
+        val in = Input(Vec(3, Vec(32, Vec(32, SInt(in_w.W)))))
+        val out = Output(Vec(10, SInt(out_w.W)))
+    })
+
+    val conv1 = Module(new Conv(32, 3, 384, 3, 1, cnn_param(0), in_w, out_w))
+    val bn1 = Module(new ShiftBatchNorm2d(30, 384, cnn_bn(0)(0), cnn_bn(0)(1), cnn_bn(0)(2), cnn_bn(0)(3), out_w))
+    val bi1 = Module(new Binarize2d(384, 30, out_w))
+
+    val conv2 = Module(new Conv(30, 384, 384, 3, 1, cnn_param(1), 2, out_w))
+    val mp2 = Module(new MaxPool(28, 384, 2, 2, out_w))
+    val bn2 = Module(new ShiftBatchNorm2d(14, 384, cnn_bn(1)(0), cnn_bn(1)(1), cnn_bn(1)(2), cnn_bn(1)(3), out_w))
+    val bi2 = Module(new Binarize2d(384, 14, out_w))
+
+    val conv3 = Module(new Conv(14, 384, 768, 3, 1, cnn_param(2), 2, out_w))
+    val bn3 = Module(new ShiftBatchNorm2d(12, 768, cnn_bn(2)(0), cnn_bn(2)(1), cnn_bn(2)(2), cnn_bn(2)(3), out_w))
+    val bi3 = Module(new Binarize2d(768, 12, out_w))
+
+    val conv4 = Module(new Conv(12, 768, 768, 3, 1, cnn_param(3), 2, out_w))
+    val bn4 = Module(new ShiftBatchNorm2d(10, 768, cnn_bn(3)(0), cnn_bn(3)(1), cnn_bn(3)(2), cnn_bn(3)(3), out_w))
+    val bi4 = Module(new Binarize2d(1536, 10, out_w))
+
+    val conv5 = Module(new Conv(10, 768, 1536, 3, 1, cnn_param(4), 2, out_w))
+    val bn5 = Module(new ShiftBatchNorm2d(8, 1536, cnn_bn(4)(0), cnn_bn(4)(1), cnn_bn(4)(2), cnn_bn(4)(3), out_w))
+    val bi5 = Module(new Binarize2d(1536, 8, out_w))
+
+    val conv6 = Module(new Conv(8, 1536, 512, 3, 1, cnn_param(5), 2, out_w))
+    val mp6 = Module(new MaxPool(6, 512, 2, 2, out_w))
+    val bn6 = Module(new ShiftBatchNorm2d(3, 512, cnn_bn(5)(0), cnn_bn(5)(1), cnn_bn(5)(2), cnn_bn(5)(3), out_w))
+    val bi6 = Module(new Binarize2d(512, 3, out_w))
+
+    val fc1 = Module(new Linear_p(512*3*3, 1024, fc_param(0), 2, out_w))
+    val fc_bn1 = Module(new ShiftBatchNorm(1024, fc_bn(0)(0), fc_bn(0)(1), fc_bn(0)(2), fc_bn(0)(3), out_w))
+    val fc_bi1 = Module(new Binarize(1024, out_w))
+
+    val fc2 = Module(new Linear_p(1024, 1024, fc_param(1), 2, out_w))
+    val fc_bn2 = Module(new ShiftBatchNorm(1024, fc_bn(1)(0), fc_bn(1)(1), fc_bn(1)(2), fc_bn(1)(3), out_w))
+    val fc_bi2 = Module(new Binarize(1024, out_w))
+
+    val fc3 = Module(new Linear_p(1024, 10, fc_param(2), 2, out_w))
+    val fc_bn3 = Module(new ShiftBatchNorm(10, fc_bn(2)(0), fc_bn(2)(1), fc_bn(2)(2), fc_bn(2)(3), out_w))
+
+    conv1.io.in := io.in
+    bn1.io.in := conv1.io.out
+    bi1.io.in := bn1.io.out
+
+    conv2.io.in := bi1.io.out
+    mp2.io.in := conv2.io.out
+    bn2.io.in := mp2.io.out
+    bi2.io.in := bn2.io.out
+
+    conv3.io.in := bi2.io.out
+    bn3.io.in := conv3.io.out
+    bi3.io.in := bn3.io.out
+
+    conv4.io.in := bi3.io.out
+    bn4.io.in := conv4.io.out
+    bi4.io.in := bn4.io.out
+
+    conv5.io.in := bi4.io.out
+    bn5.io.in := conv5.io.out
+    bi5.io.in := bn5.io.out
+
+    conv6.io.in := bi5.io.out
+    mp6.io.in := conv6.io.out
+    bn6.io.in := mp6.io.out
+    bi6.io.in := bn6.io.out
+
+    for (i <- 0 until 512; j <- 0 until 3; k <- 0 until 3) {
+        fc1.io.in(512 * i + 3 * j + k) := bi6.io.out(i)(j)(k)
+    }
+    fc_bn1.io.in := fc1.io.out
+    fc_bi1.io.in := fc_bn1.io.out
+
+    fc2.io.in := fc_bi1.io.out
+    fc_bn2.io.in := fc2.io.out
+    fc_bi2.io.in := fc_bn2.io.out
+    
+    fc3.io.in := fc_bi2.io.out
+    fc_bn3.io.in := fc3.io.out
+    
+    io.out := fc_bn3.io.out
+}

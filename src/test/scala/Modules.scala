@@ -14,6 +14,10 @@ class RomData(val id: Int, val fc1: Seq[Int], val fc2: Seq[Int], val fc3: Seq[In
 
 class ConvData(val input: Seq[Seq[Seq[Int]]], val param: Seq[Seq[Seq[Seq[Int]]]])
 
+class MPData(val input: Seq[Seq[Seq[Int]]])
+
+class SBN2dData(val input:Seq[Seq[Seq[Int]]], val weight:Seq[Int], val bias:Seq[Int], val mean:Seq[Int], val norm:Seq[Int])
+
 // class TopMLP(val in_w:Int, val out_w:Int , val input:Seq[Int], val fc1: Seq[Int], val fc2: Seq[Int], val fc3: Seq[Int],
 //              val bn1_weight: Seq[Int], val bn1_bias: Seq[Int], val bn1_mean: Seq[Int], val bn1_norm: Seq[Int],
 //              val bn2_weight: Seq[Int], val bn2_bias: Seq[Int], val bn2_mean: Seq[Int], val bn2_norm: Seq[Int],
@@ -74,7 +78,7 @@ class TopConv(val in_w:Int, val out_w:Int , val input:Seq[Seq[Seq[Int]]], val pa
 
 class ConvTester(c: TopConv) extends PeekPokeTester(c){
     step(1)
-    for (i <- 0 until 2; j <- 0 until 2; k <- 0gi until 2) {
+    for (i <- 0 until 2; j <- 0 until 2; k <- 0 until 2) {
         println(s"out[$i:$j:$k] = ${peek(c.io.out(i)(j)(k))}")
     }
 }
@@ -89,6 +93,76 @@ class ConvSpec extends AnyFreeSpec with Matchers{
         }
         Driver.execute(Array("--backend-name", "firrtl"), () => new TopConv(4, 8, romData.input, romData.param)) {
             c => new ConvTester(c)
+        }
+    }
+}
+
+class TopMP(val in_w:Int , val input:Seq[Seq[Seq[Int]]]) extends Module{
+    val io = IO(new Bundle{
+        val out = Output(Vec(1, Vec(2, Vec(2, SInt(in_w.W)))))
+    })
+
+    val in = Wire(Vec(1, Vec(4, Vec(4, SInt(in_w.W)))))
+    for (i <- 0 until 1; j <- 0 until 4; k <- 0 until 4) {
+        in(i)(j)(k) := input(i)(j)(k).S(in_w.W)
+    }
+    val mp = Module(new MaxPool(4, 1, 2, 2, 4))
+    mp.io.in := in
+    io.out := mp.io.out
+}
+
+class MPTester(c: TopMP) extends PeekPokeTester(c){
+    step(1)
+    for (i <- 0 until 1; j <- 0 until 2; k <- 0 until 2) {
+        println(s"out[$i:$j:$k] = ${peek(c.io.out(i)(j)(k))}")
+    }
+}
+
+class MPSpec extends AnyFreeSpec with Matchers{
+    val romDir = new File("src/test/data")
+    romDir.listFiles().filter(f => f.getName().contains("maxpool.json")).foreach { f => 
+        val json = Source.fromFile(f.getAbsolutePath()).mkString
+        val romData = decode[MPData](json) match {
+            case Right(data) => data
+            case Left(error) => throw new Exception(error)
+        }
+        Driver.execute(Array("--backend-name", "firrtl"), () => new TopMP(4, romData.input)) {
+            c => new MPTester(c)
+        }
+    }
+}
+
+class TopSBN2d(val in_w:Int , val input:Seq[Seq[Seq[Int]]], val weight:Seq[Int], val bias:Seq[Int], val mean:Seq[Int], val norm:Seq[Int]) extends Module{
+    val io = IO(new Bundle{
+        val out = Output(Vec(1, Vec(4, Vec(4, SInt(in_w.W)))))
+    })
+
+    val in = Wire(Vec(1, Vec(4, Vec(4, SInt(in_w.W)))))
+    for (i <- 0 until 1; j <- 0 until 4; k <- 0 until 4) {
+        in(i)(j)(k) := input(i)(j)(k).S(in_w.W)
+    }
+    val sbn2d = Module(new ShiftBatchNorm2d(4, 1, weight, bias, mean, norm, 16))
+    sbn2d.io.in := in
+    io.out := sbn2d.io.out
+}
+
+class SBN2dTester(c: TopSBN2d) extends PeekPokeTester(c){
+    step(1)
+    for (i <- 0 until 1; j <- 0 until 4; k <- 0 until 4) {
+        println(s"out[$i:$j:$k] = ${peek(c.io.out(i)(j)(k))}")
+    }
+}
+
+class SBN2dSpec extends AnyFreeSpec with Matchers{
+    val romDir = new File("src/test/data")
+    romDir.listFiles().filter(f => f.getName().contains("sbn2d.json")).foreach { f => 
+        val json = Source.fromFile(f.getAbsolutePath()).mkString
+        val romData = decode[SBN2dData](json) match {
+            case Right(data) => data
+            case Left(error) => throw new Exception(error)
+        }
+        Driver.execute(Array("--backend-name", "firrtl"), () => new TopSBN2d(4, romData.input, romData.weight, romData.bias, romData.mean, romData.norm)) {
+            c => new SBN2dTester(c)
         }
     }
 }
