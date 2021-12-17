@@ -11,7 +11,7 @@ train_scripts/logにlogが保存される。ファイル名は学習を実行し
 
 ### train_config各種の説明
 - hidden_dim: 隠れ層ひとつあたりのユニット数
-- hidden_layers: 隠れ層の数
+- hidden_layers: 隠れ層の数(注意:現在はビルドできるのが1層のみ)
 - precalculate_bn: trueのときBNと活性化関数を前計算する
 - mu: TNNの重みを0とするしきい値。0にするとBNNに相当する
 
