@@ -1,0 +1,12 @@
+{
+    "max_epoch": 1,             
+    "batch_size": 100,          
+    "hidden_dim": 16,           
+    "hidden_layers": 1,         
+    "precalculate_bn": true,    
+    "mu": 0.035,                
+    "seed": 0,
+    "lr": 1e-2,
+    "train_rate": 0.9,
+    "input_bit": 4
+}

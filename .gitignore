@@ -9,4 +9,3 @@ tests/project
 !tests/*.toml
 !tests/*.in
 test_run_dir/
-*.json
