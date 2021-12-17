@@ -1,8 +1,6 @@
-.bloop
-.metals
-.idea
+.*
+train_scripts/.*
 target
-src/test/data/cnn_data.json
 project/target
 project/project
 project/.bloop
@@ -11,3 +9,4 @@ tests/project
 !tests/*.toml
 !tests/*.in
 test_run_dir/
+*.json

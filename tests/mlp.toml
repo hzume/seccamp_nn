@@ -1,6 +1,6 @@
 [[file]]
 type = "yosys-json"
-path = "MLP.json"
+path = "../MLP.json"
 name = "MLP"
 
 [connect]

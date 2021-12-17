@@ -1,0 +1,27 @@
+2021-12-17 20:49:30,396 - __main__ - INFO - Run ID: 2021_12_17_1
+2021-12-17 20:49:30,397 - __main__ - INFO - comment: comment
+2021-12-17 20:49:30,397 - __main__ - INFO - Using cpu
+2021-12-17 20:49:30,398 - __main__ - INFO - 
+2021-12-17 20:49:30,398 - __main__ - INFO - Hyper Parameters:
+2021-12-17 20:49:30,399 - __main__ - INFO - comment: comment
+2021-12-17 20:49:30,400 - __main__ - INFO - hidden_dim: 16
+2021-12-17 20:49:30,401 - __main__ - INFO - hidden_layers: 1
+2021-12-17 20:49:30,402 - __main__ - INFO - precalculate_bn: True
+2021-12-17 20:49:30,403 - __main__ - INFO - mu: 0.035
+2021-12-17 20:49:30,404 - __main__ - INFO - train_rate: 0.9
+2021-12-17 20:49:30,405 - __main__ - INFO - input_bit: 4
+2021-12-17 20:49:30,406 - __main__ - INFO - max_epoch: 1
+2021-12-17 20:49:30,407 - __main__ - INFO - batch_size: 100
+2021-12-17 20:49:30,408 - __main__ - INFO - lr: 0.01
+2021-12-17 20:49:30,408 - __main__ - INFO - seed: 0
+2021-12-17 20:49:31,155 - __main__ - INFO - 
+2021-12-17 20:49:31,155 - __main__ - INFO - Start Training
+2021-12-17 20:49:45,271 - __main__ - INFO - epoch:1/1	 train_loss:0.008920	 val_loss:0.006557	 val_acc:83.63
+2021-12-17 20:49:45,271 - __main__ - INFO - Finish
+2021-12-17 20:49:45,286 - __main__ - INFO - Saved Model parameters
+2021-12-17 20:50:08,012 - __main__ - INFO - Normal Accuracy:83.74%
+2021-12-17 20:50:30,207 - __main__ - INFO - Quantize Accuracy:83.08%
+2021-12-17 20:50:33,186 - __main__ - INFO - Rate of zero weight:
+2021-12-17 20:50:33,188 - __main__ - INFO - layer 1:	21.01%
+2021-12-17 20:50:33,189 - __main__ - INFO - layer 2:	20.70%
+2021-12-17 20:50:33,191 - __main__ - INFO - layer 3:	10.62%
