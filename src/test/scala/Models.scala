@@ -28,7 +28,7 @@ class MLPTester(c: TopMLP) extends PeekPokeTester(c){
 }
 
 class MLPSpec extends AnyFreeSpec with Matchers{
-    val configFile = new File("src/config/config.json")
+    val configFile = new File("src/config/build_config.json")
     val configJson = Source.fromFile(configFile.getAbsolutePath()).mkString
     val config = decode[Config](configJson) match {
         case Right(data) => data

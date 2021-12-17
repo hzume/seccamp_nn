@@ -81,7 +81,7 @@ def setting_logger(log_dir):
     logger.addHandler(sh)
     return logger
 
-def get_args(config_path = "train_scripts/config/config.json"):
+def get_args(config_path = "train_scripts/config/train_config.json"):
     with open(config_path, "r") as f:
         data = f.read()
     config = json.loads(data)
