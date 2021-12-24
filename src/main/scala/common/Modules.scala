@@ -102,39 +102,6 @@ class MaxPool(val in_size:Int, val in_c:Int, val kernel_size:Int, val stride:Int
     }
 }
 
-class Linear_p0(val in_units:Int, val out_units:Int, val weight:Seq[Seq[Int]], val in_w:Int, val out_w:Int) extends Module {
-    val io = IO(new Bundle{
-        val in = Input(Vec(in_units, SInt(in_w.W)))
-        val out = Output(Vec(out_units, SInt(out_w.W)))
-    })
-
-    val buffer = Wire(Vec(out_units, Vec(in_units, SInt(out_w.W))))
-
-    for (i <- 0 until out_units) {
-        for (j <- 0 until in_units if j % 2 == 0) {
-            buffer(i)(j / 2) := weight(i)(j).S * io.in(j) + weight(i)(j + 1).S * io.in(j + 1)
-        }
-        for (j <- 0 until (in_units/2) if j % 2 == 0) {
-            buffer(i)(in_units/2 + j/2) := buffer(i)(j) + buffer(i)(j + 1)
-        }
-        for (j <- 0 until (in_units/4) if j % 2 == 0) {
-            buffer(i)(in_units/4 + in_units/2 + j/2) := buffer(i)(in_units/2 + j) + buffer(i)(in_units/2 + j + 1)
-        }
-        for (j <- 0 until (in_units/8) if j % 2 == 0) {
-            buffer(i)(in_units/8 + in_units/4 + in_units/2 + j/2) := buffer(i)(in_units/4 + in_units/2 + j) + buffer(i)(in_units/4 + in_units/2 + j + 1)
-        }
-        for (j <- 0 until (in_units/16)) {
-            if (j == 0) {
-                buffer(i)(in_units/16 + in_units/8 + in_units/4 + in_units/2 + j) := buffer(i)(in_units/8 + in_units/4 + in_units/2 + j)
-            }
-            else {
-                buffer(i)(in_units/16 + in_units/8 + in_units/4 + in_units/2 + j) := buffer(i)(in_units/16 + in_units/8 + in_units/4 + in_units/2 + j - 1) + buffer(i)(in_units/8 + in_units/4 + in_units/2 + j)
-            }
-        }
-        io.out(i) := buffer(i)(in_units-1)
-    }
-}
-
 class Linear_p(val in_units:Int, val out_units:Int, val weight:Seq[Seq[Int]], val in_w:Int) extends Module {
     val out_w = ceil(log(in_units) / log(2)).asInstanceOf[Int] + in_w
     val io = IO(new Bundle{
@@ -213,13 +180,18 @@ class Linear_p(val in_units:Int, val out_units:Int, val weight:Seq[Seq[Int]], va
         sum(i, num_nonzero(i), -1, 0)
     }
 }
-class Linear(val in_units:Int, val out_units:Int, val weight:Seq[Seq[Int]], val in_w:Int, val out_w:Int) extends Module {
+class Linear(val in_units:Int, val out_units:Int, val weight:Seq[Seq[Int]], val in_w:Int) extends Module {
+    val out_w = ceil(log(in_units) / log(2)).asInstanceOf[Int] + in_w
     val io = IO(new Bundle{
         val in = Input(Vec(in_units, SInt(in_w.W)))
         val out = Output(Vec(out_units, SInt(out_w.W)))
     })
 
-    val buffer = Wire(Vec(out_units, Vec(in_units, SInt(out_w.W))))
+    val buffer = for (i <- 0 until out_units) yield {
+        for (j <- 0 until in_units) yield {
+            Wire(SInt((ceil(log(j + 1) / log(2)).asInstanceOf[Int] + in_w).W))
+        }
+    }
 
     for (i <- 0 until out_units) {
         for (j <- 0 until in_units) {
@@ -315,6 +287,27 @@ class BN_BI(val num_units:Int, val bn:BNParameter, val bit_w:Int) extends Module
         }
     }
 }
+
+// class Approx_BN_BI(val num_units:Int, val bn:BNParameter, val bit_w:Int) extends Module {
+//     val io = IO(new Bundle {
+//         val in = Input(Vec(num_units, SInt(bit_w.W)))
+//         val out = Output(Vec(num_units, SInt(bit_w.W)))
+//     })
+//     val x_childe = Wire(Vec(num_units, SInt(bit_w.W)))
+//     val k = for (i <- 0 until num_units) yield {
+//         if (bn.gamma(i) < 0) {
+
+//         }
+//     }
+//     for (i <- 0 until num_units) {
+//         buffer(i) := io.in(i) - bn.threshold(i).S(bit_w.W)
+//         when(buffer(i) >= 0.S) {
+//             io.out(i) := 1.S
+//         }.otherwise {
+//             io.out(i) := -1.S
+//         }
+//     }
+// }
 
 class Binarize2d(val in_c:Int, val in_size:Int, val in_w:Int) extends Module {
     val io = IO(new Bundle {
