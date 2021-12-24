@@ -29,7 +29,8 @@ def main():
     log_dir, run_id = get_log_dir()
     logger = setting_logger(log_dir)
     logger.info(f"Run ID: {run_id}")
-    logger.info("comment: " + args.comment)
+    if args.comment != None:
+        logger.info("Comment: " + args.comment)
     logger.info(f"Using {device}")
     logger.info("")
     logger.info("Hyper Parameters:")

@@ -11,23 +11,17 @@ import modules._
 
 class TopModules(val rom:MLPData) extends Module{
     val io = IO(new Bundle{
-        val fc_out = Output(Vec(16, SInt(14.W)))
         val bn_bi_out = Output(Vec(16, SInt(14.W)))
         val bn_out = Output(Vec(10, SInt(14.W)))
-        val fc_out0 = Output(Vec(16, SInt(14.W)))
+        val fc_out = Output(Vec(16, SInt(14.W)))
+        val fc_p_out = Output(Vec(16, SInt(14.W)))
+        val fc2_out = Output(Vec(16, SInt(14.W)))
+        val fc2_p_out = Output(Vec(16, SInt(14.W)))
     })
 
     val fc_in = VecInit(rom.test.fc_in map(x => x.S(14.W)))
     val bn_bi_in = VecInit(rom.test.bn_bi_in map(x => x.S(14.W)))
     val bn_in = VecInit(rom.test.bn_in map(x => x.S(14.W)))
-
-    val fc0 = Module(new Linear_p0(784, 16, rom.fc(0), 4, 14))
-    fc0.io.in := fc_in
-    io.fc_out0 := fc0.io.out
-
-    val fc = Module(new Linear_p(784, 16, rom.fc(0), 4))
-    fc.io.in := fc_in  
-    io.fc_out := fc.io.out
 
     val bn_bi = Module(new BN_BI(16, rom.bn(0), 14))
     bn_bi.io.in := bn_bi_in
@@ -36,13 +30,29 @@ class TopModules(val rom:MLPData) extends Module{
     val bn = Module(new SBN(10, rom.bn(2), 14))
     bn.io.in := bn_in
     io.bn_out := bn.io.out
+
+        val fc = Module(new Linear(784, 16, rom.fc(0), 4))
+    fc.io.in := fc_in
+    io.fc_out := fc.io.out
+
+    val fc_p = Module(new Linear_p(784, 16, rom.fc(0), 4))
+    fc_p.io.in := fc_in  
+    io.fc_p_out := fc_p.io.out
+
+    val fc2 = Module(new Linear(16, 16, rom.fc(1), 2))
+    fc2.io.in := bn_bi.io.out
+    io.fc2_out := fc2.io.out
+
+    val fc2_p = Module(new Linear_p(16, 16, rom.fc(1), 2))
+    fc2_p.io.in := bn_bi.io.out 
+    io.fc2_p_out := fc2_p.io.out
 }
 
 class ModulesTester(c: TopModules) extends PeekPokeTester(c){
     step(1)
     for (i <- 0 until 16) {
+        expect(c.io.fc_p_out(i), c.rom.test.fc_out(i))
         expect(c.io.fc_out(i), c.rom.test.fc_out(i))
-        expect(c.io.fc_out0(i), c.rom.test.fc_out(i))
     }
     for (i <- 0 until 16) {
         expect(c.io.bn_bi_out(i), c.rom.test.bn_bi_out(i))
@@ -50,7 +60,13 @@ class ModulesTester(c: TopModules) extends PeekPokeTester(c){
     for (i <- 0 until 10) {
         expect(c.io.bn_out(i), c.rom.test.bn_out(i))
     }
-
+    for (i <- 0 until 16) {
+        println(s"in[$i] = ${peek(c.io.bn_bi_out(i))}")
+    }
+    for (i <- 0 until 16) {
+        println(s"out[$i] = ${peek(c.io.fc2_out(i))}")
+        println(s"out_p[$i] = ${peek(c.io.fc2_p_out(i))}")
+    }
 }
 
 class ModulesSpec extends AnyFreeSpec with Matchers{

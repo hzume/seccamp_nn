@@ -13,7 +13,7 @@ class MLP(val rom:MLPData, val config:Config, val in_dim:Int=784, val out_dim:In
         Module(new Linear_p(in_dim, rom.model_arch.hidden_dim, rom.fc(0), rom.model_arch.in_w))
     }        
     else { 
-        Module(new Linear(in_dim, rom.model_arch.hidden_dim, rom.fc(0), rom.model_arch.in_w, 14))
+        Module(new Linear(in_dim, rom.model_arch.hidden_dim, rom.fc(0), rom.model_arch.in_w))
     }
 
     val out_w1 = ceil(log(in_dim) / log(2)).asInstanceOf[Int] + rom.model_arch.in_w
@@ -26,7 +26,7 @@ class MLP(val rom:MLPData, val config:Config, val in_dim:Int=784, val out_dim:In
         Module(new Linear_p(rom.model_arch.hidden_dim, rom.model_arch.hidden_dim, rom.fc(1), 2))
     }
     else {
-        Module(new Linear(rom.model_arch.hidden_dim, rom.model_arch.hidden_dim, rom.fc(1), 2, 8))
+        Module(new Linear(rom.model_arch.hidden_dim, rom.model_arch.hidden_dim, rom.fc(1), 2))
     }
     val out_w2 = ceil(log(rom.model_arch.hidden_dim) / log(2)).asInstanceOf[Int] + 2
 
@@ -39,7 +39,7 @@ class MLP(val rom:MLPData, val config:Config, val in_dim:Int=784, val out_dim:In
         Module(new Linear_p(rom.model_arch.hidden_dim, out_dim, rom.fc(2), 2))
     }
     else {
-        Module(new Linear(rom.model_arch.hidden_dim, out_dim, rom.fc(2), 2, 8))
+        Module(new Linear(rom.model_arch.hidden_dim, out_dim, rom.fc(2), 2))
     }
     val out_w3 = ceil(log(rom.model_arch.hidden_dim) / log(2)).asInstanceOf[Int] + 2
     val bn3 = Module(new SBN(out_dim, rom.bn(2), out_w3))
