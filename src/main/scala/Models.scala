@@ -15,8 +15,8 @@ class MLP(val rom:MLPData, val config:Config, val in_dim:Int=784, val out_dim:In
     else { 
         Module(new Linear(in_dim, rom.model_arch.hidden_dim, rom.fc(0), rom.model_arch.in_w, 14))
     }
-    val out_w1 = ceil(log(in_dim) / log(2)).asInstanceOf[Int] + rom.model_arch.in_w
 
+    val out_w1 = ceil(log(in_dim) / log(2)).asInstanceOf[Int] + rom.model_arch.in_w
     val bn1 = Module(new SBN(rom.model_arch.hidden_dim, rom.bn(0), out_w1))
     val bi1 = Module(new Binarize(rom.model_arch.hidden_dim, out_w1))
     val bn_bi1 = Module(new BN_BI(rom.model_arch.hidden_dim, rom.bn(0), out_w1))

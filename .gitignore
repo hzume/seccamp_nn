@@ -9,3 +9,8 @@ tests/project
 !tests/*.toml
 !tests/*.in
 test_run_dir/
+src/parameters/*
+train_scripts/log/*
+*.json
+!src/config/*.json
+!train_scripts/config/*.json
